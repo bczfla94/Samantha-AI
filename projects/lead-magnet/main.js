@@ -1,0 +1,583 @@
+/* ============================================
+   SAMANTHA — Lead Magnet Landing Page
+   5-Step Client Conversion System
+   ============================================ */
+
+// Always start at the top of the page on refresh
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+window.scrollTo(0, 0);
+
+/* ============================================
+   WORD PULL UP ANIMATION
+   Ported from landing-page/main.js
+   ============================================ */
+
+class WordPullUp {
+  /**
+   * @param {HTMLElement} el        — the .scramble-line span
+   * @param {string}      text      — full text to animate
+   * @param {number}      stagger   — seconds between each word (default 0.12)
+   * @param {number}      delayMs   — ms before the first word starts
+   */
+  constructor(el, text, stagger = 0.12, delayMs = 0) {
+    const isGradient = el.classList.contains("scramble-line-gradient");
+    const words      = text.split(" ");
+    const delayS     = delayMs / 1000;
+
+    el.textContent = "";
+
+    words.forEach((word, i) => {
+      const clip = document.createElement("span");
+      clip.style.cssText = `
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: bottom;
+        margin-right: 0.22em;
+      `;
+
+      const inner = document.createElement("span");
+      inner.textContent = word;
+      inner.style.cssText = `
+        display: inline-block;
+        opacity: 0;
+        transform: translateY(28px);
+        animation: wordPullUp 0.55s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+        animation-delay: ${delayS + i * stagger}s;
+      `;
+
+      if (isGradient) {
+        inner.style.background          = "linear-gradient(135deg, #DF69FF 0%, #7B21BA 55%, #4B0BA3 100%)";
+        inner.style.webkitBackgroundClip = "text";
+        inner.style.webkitTextFillColor  = "transparent";
+        inner.style.backgroundClip       = "text";
+      }
+
+      clip.appendChild(inner);
+      el.appendChild(clip);
+    });
+  }
+}
+
+/* ============================================
+   BOOK TILT — Hover-only 3D tilt for PDF book
+   Simplified from landing-page/main.js CardTilt
+   ============================================ */
+
+class BookTilt {
+  constructor(book) {
+    this.book  = book;
+    this.glare = document.getElementById("book-glare");
+
+    this._rotX   = 0;
+    this._rotY   = 0;
+    this._scale  = 1;
+
+    this._targetRotX  = 0;
+    this._targetRotY  = 0;
+    this._targetScale = 1;
+
+    this._hovering     = false;
+    this._loopRunning  = false;
+
+    // Prevent text selection and native drag when user clicks/drags on the book
+    this.book.addEventListener("selectstart", (e) => e.preventDefault());
+    this.book.addEventListener("dragstart",   (e) => e.preventDefault());
+
+    this.book.style.transition = "box-shadow 0.4s ease";
+    this.book.style.transform  =
+      `perspective(900px) rotateX(0deg) rotateY(0deg) rotate(-4deg) scale(1)`;
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // Mouse — uses rAF lerp loop for smooth desktop feel
+    this.book.addEventListener("mousemove",  (e) => this._onHover(e));
+    this.book.addEventListener("mouseleave", ()  => this._onLeave());
+
+    // Touch — applies transform directly (bypasses rAF loop, required for iOS Safari)
+    this.book.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      this._applyTouchTilt(e.touches[0]);
+    }, { passive: false });
+
+    this.book.addEventListener("touchmove", (e) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      this._applyTouchTilt(e.touches[0]);
+    }, { passive: false });
+
+    this.book.addEventListener("touchend",    () => this._resetTouchTilt());
+    this.book.addEventListener("touchcancel", () => this._resetTouchTilt());
+  }
+
+  _applyTouchTilt(touch) {
+    const rect = this.book.getBoundingClientRect();
+    const x    = (touch.clientX - rect.left) / rect.width;
+    const y    = (touch.clientY - rect.top)  / rect.height;
+    const rotY =  (x - 0.5) * 16;
+    const rotX = -(y - 0.5) * 16;
+
+    this.book.style.transition = "box-shadow 0.2s ease";
+    this.book.style.transform  =
+      `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotate(-4deg) scale(1.04)`;
+    this.book.style.boxShadow  =
+      `0 50px 100px rgba(75,11,163,0.55), 0 0 140px rgba(123,33,186,0.3)`;
+
+    if (this.glare) {
+      this.glare.style.opacity    = "1";
+      this.glare.style.background =
+        `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.13) 0%, transparent 60%)`;
+    }
+  }
+
+  _resetTouchTilt() {
+    this.book.style.transition = "transform 0.5s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
+    this.book.style.transform  =
+      `perspective(900px) rotateX(0deg) rotateY(0deg) rotate(-4deg) scale(1)`;
+    this.book.style.boxShadow  = "";
+    if (this.glare) this.glare.style.opacity = "0";
+    setTimeout(() => { this.book.style.transition = "box-shadow 0.4s ease"; }, 500);
+  }
+
+  _startLoop() {
+    if (this._loopRunning) return;
+    this._loopRunning = true;
+    this._loop();
+  }
+
+  _onHover(e) {
+    const rect = this.book.getBoundingClientRect();
+    const x    = (e.clientX - rect.left) / rect.width;
+    const y    = (e.clientY - rect.top)  / rect.height;
+
+    this._targetRotY  =  (x - 0.5) * 16;
+    this._targetRotX  = -(y - 0.5) * 16;
+    this._targetScale = 1.04;
+
+    if (!this._hovering) {
+      // Only set these once on hover enter, not every mousemove
+      this._hovering = true;
+      if (this.glare) this.glare.style.opacity = "1";
+      this.book.style.boxShadow =
+        `0 50px 100px rgba(75,11,163,0.55), 0 0 140px rgba(123,33,186,0.3)`;
+    }
+
+    if (this.glare) {
+      this.glare.style.background =
+        `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.13) 0%, transparent 60%)`;
+    }
+
+    this._startLoop();
+  }
+
+  _onLeave() {
+    this._targetRotX  = 0;
+    this._targetRotY  = 0;
+    this._targetScale = 1;
+    this._hovering    = false;
+
+    if (this.glare) this.glare.style.opacity = "0";
+    this.book.style.boxShadow = "";
+    this._startLoop();
+  }
+
+  _lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  _loop() {
+    const t = this._hovering ? 0.10 : 0.08;
+
+    this._rotX  = this._lerp(this._rotX,  this._targetRotX,  t);
+    this._rotY  = this._lerp(this._rotY,  this._targetRotY,  t);
+    this._scale = this._lerp(this._scale, this._targetScale, t);
+
+    this.book.style.transform =
+      `perspective(900px) rotateX(${this._rotX}deg) rotateY(${this._rotY}deg) rotate(-4deg) scale(${this._scale})`;
+
+    // Stop loop when values have fully converged
+    const settled =
+      Math.abs(this._rotX  - this._targetRotX)  < 0.01 &&
+      Math.abs(this._rotY  - this._targetRotY)  < 0.01 &&
+      Math.abs(this._scale - this._targetScale) < 0.0005;
+
+    if (settled) {
+      this._loopRunning = false;
+    } else {
+      requestAnimationFrame(() => this._loop());
+    }
+  }
+}
+
+/* ============================================
+   PARTICLES
+   Ported from landing-page/main.js
+   ============================================ */
+
+function initParticles() {
+  if (typeof tsParticles === "undefined") return;
+
+  tsParticles.load("hero-particles", {
+    fullScreen: { enable: false },
+    background: { color: { value: "transparent" } },
+    fpsLimit: 60,
+    particles: {
+      number: {
+        value: 40,
+        density: { enable: true, width: 800, height: 600 },
+      },
+      color: { value: ["#DF69FF", "#ffffff", "#7B21BA"] },
+      shape: { type: "circle" },
+      opacity: {
+        value: { min: 0.08, max: 0.45 },
+        animation: {
+          enable: true,
+          speed: 1.2,
+          sync: false,
+          startValue: "random",
+        },
+      },
+      size: {
+        value: { min: 0.8, max: 2.2 },
+      },
+      move: {
+        enable: true,
+        speed: { min: 0.2, max: 0.6 },
+        direction: "none",
+        random: true,
+        straight: false,
+        outModes: { default: "out" },
+      },
+      links: { enable: false },
+    },
+    interactivity: {
+      events: {
+        onHover: { enable: false },
+        onClick: { enable: false },
+      },
+    },
+    detectRetina: true,
+  });
+}
+
+/* ============================================
+   CARD TILT — Full interactive playing card
+   Ported from landing-page/main.js
+   ============================================ */
+
+class CardTilt {
+  constructor(card) {
+    this.card         = card;
+    this.glare        = document.getElementById("card-glare");
+    this.frontContent = card.querySelector(".card-front-content");
+    this.backContent  = card.querySelector(".card-back-content");
+    this.isDragging   = false;
+    this._isHovering  = false;
+    this.dragStartX   = 0;
+    this.dragStartY   = 0;
+    this.dragRotX     = 0;
+    this.dragRotY     = 0;
+    this.card.style.transition = "transform 0.6s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    this.card.addEventListener("mousemove",  (e) => this._onHover(e));
+    this.card.addEventListener("mouseleave", ()  => this._onLeave());
+    this.card.addEventListener("mousedown",  (e) => this._onDragStart(e));
+
+    // Store bound refs so we can add/remove them only while dragging
+    this._boundDrag    = (e) => this._onDrag(e);
+    this._boundDragEnd = ()  => this._onDragEnd();
+
+    this.card.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      this._onDragStart(e.touches[0]);
+    }, { passive: false });
+    this.card.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      this._onDrag(e.touches[0]);
+    }, { passive: false });
+  }
+
+  _setTransform(rotX, rotY, scale = 1) {
+    this.card.style.transform =
+      `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(${scale})`;
+  }
+
+  _updateFace(rotX, rotY) {
+    const absRotY = ((Math.abs(rotY) % 360) + 360) % 360;
+    const absRotX = ((Math.abs(rotX) % 360) + 360) % 360;
+    const flipY   = absRotY > 90 && absRotY < 270;
+    const flipX   = absRotX > 90 && absRotX < 270;
+    const showBack = flipX !== flipY;
+    if (this.frontContent) this.frontContent.style.opacity = showBack ? "0" : "1";
+    if (this.backContent)  this.backContent.style.opacity  = showBack ? "1" : "0";
+    if (this.backContent)  this.backContent.style.transform = flipY ? "scaleX(-1)" : "";
+  }
+
+  _setGlare(x, y) {
+    if (!this.glare) return;
+    this.glare.style.background =
+      `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.13) 0%, transparent 60%)`;
+    this.glare.style.opacity = "1";
+  }
+
+  _onHover(e) {
+    if (this.isDragging) return;
+    const rect = this.card.getBoundingClientRect();
+    const x    = (e.clientX - rect.left) / rect.width;
+    const y    = (e.clientY - rect.top)  / rect.height;
+    const rotY =  (x - 0.5) * 22;
+    const rotX = -(y - 0.5) * 22;
+
+    // Set fast transition once on hover enter (not every mousemove)
+    if (!this._isHovering) {
+      this._isHovering = true;
+      this.card.style.transition = "transform 0.1s ease, box-shadow 0.3s ease";
+      this.card.style.boxShadow =
+        `0 20px 60px rgba(223,105,255,0.25), 0 0 100px rgba(75,11,163,0.15)`;
+    }
+
+    this._setTransform(rotX, rotY, 1.03);
+    this._setGlare(x * 100, y * 100);
+  }
+
+  _onLeave() {
+    if (this.isDragging) return;
+    this._isHovering = false;
+    if (this.glare) this.glare.style.opacity = "0";
+    this.card.style.transition = "transform 0.6s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
+    this._setTransform(0, 0, 1);
+    this.card.style.boxShadow = "";
+  }
+
+  _onDragStart(e) {
+    if (e.preventDefault) e.preventDefault();
+    this.isDragging = true;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.card.style.transition = "box-shadow 0.3s ease";
+    this.card.style.cursor = "grabbing";
+    // Only attach global listeners while dragging
+    document.addEventListener("mousemove", this._boundDrag);
+    document.addEventListener("mouseup",   this._boundDragEnd);
+    document.addEventListener("touchend",  this._boundDragEnd);
+  }
+
+  _onDrag(e) {
+    if (!this.isDragging) return;
+    const dx = e.clientX - this.dragStartX;
+    const dy = e.clientY - this.dragStartY;
+    this.dragRotY =  dx * 0.4;
+    this.dragRotX = -dy * 0.4;
+    this._setTransform(this.dragRotX, this.dragRotY, 1.04);
+    this._updateFace(this.dragRotX, this.dragRotY);
+    this.card.style.boxShadow =
+      `0 30px 80px rgba(223,105,255,0.3), 0 0 120px rgba(75,11,163,0.2)`;
+  }
+
+  _onDragEnd() {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.card.style.cursor = "grab";
+    this.card.style.transition = "transform 0.7s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
+    this._setTransform(0, 0, 1);
+    this._updateFace(0, 0);
+    this.card.style.boxShadow = "";
+    // Remove global listeners now that drag is done
+    document.removeEventListener("mousemove", this._boundDrag);
+    document.removeEventListener("mouseup",   this._boundDragEnd);
+    document.removeEventListener("touchend",  this._boundDragEnd);
+  }
+}
+
+/* ============================================
+   FORM HANDLING
+   ============================================ */
+
+function validateForm(name, phone, email) {
+  const errors = { name: "", phone: "", email: "" };
+  let valid = true;
+
+  if (!name.trim()) {
+    errors.name = "Please enter your name.";
+    valid = false;
+  }
+
+  if (!phone.trim()) {
+    errors.phone = "Please enter your phone number.";
+    valid = false;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email.trim()) {
+    errors.email = "Please enter your email address.";
+    valid = false;
+  } else if (!emailRegex.test(email.trim())) {
+    errors.email = "Please enter a valid email address.";
+    valid = false;
+  }
+
+  return { valid, errors };
+}
+
+function showErrors(errors) {
+  ["name", "phone", "email"].forEach((field) => {
+    const input     = document.getElementById(`field-${field}`);
+    const errorSpan = document.getElementById(`error-${field}`);
+    if (!input || !errorSpan) return;
+
+    if (errors[field]) {
+      errorSpan.textContent = errors[field];
+      input.classList.add("input-error");
+    } else {
+      errorSpan.textContent = "";
+      input.classList.remove("input-error");
+    }
+  });
+}
+
+function clearErrors() {
+  showErrors({ name: "", phone: "", email: "" });
+}
+
+function showSuccessState(container) {
+  container.innerHTML = `
+    <div class="form-success">
+      <div class="success-icon">✓</div>
+      <h3 class="success-heading">You're in! Check your email.</h3>
+      <p class="success-sub">Your 5 Step Client Conversion System is on its way to your inbox.</p>
+    </div>
+  `;
+}
+
+function initForm() {
+  const form      = document.getElementById("optin-form");
+  const container = document.getElementById("form-container");
+  if (!form || !container) return;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const name  = document.getElementById("field-name").value;
+    const phone = document.getElementById("field-phone").value;
+    const email = document.getElementById("field-email").value;
+
+    const { valid, errors } = validateForm(name, phone, email);
+
+    if (!valid) {
+      showErrors(errors);
+      return;
+    }
+
+    // TODO: wire up your email/SMS provider here (e.g. ActiveCampaign, Zapier webhook)
+    // fetch('/api/subscribe', {
+    //   method: 'POST',
+    //   body: JSON.stringify({ name, phone, email }),
+    //   headers: { 'Content-Type': 'application/json' }
+    // });
+
+    showSuccessState(container);
+  });
+
+  // Clear field-level errors on input
+  ["field-name", "field-phone", "field-email"].forEach((id) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener("input", () => {
+      input.classList.remove("input-error");
+      const fieldName = id.replace("field-", "");
+      const errorSpan = document.getElementById(`error-${fieldName}`);
+      if (errorSpan) errorSpan.textContent = "";
+    });
+  });
+}
+
+/* ============================================
+   LOGO BACKGROUND REMOVAL
+   Uses Canvas to strip white pixels from the
+   NLC logo PNG so it floats on the dark book
+   ============================================ */
+
+function removeLogoBg() {
+  const img = document.querySelector(".book-logo-img");
+  if (!img) return;
+
+  const process = () => {
+    const canvas = document.createElement("canvas");
+    const ctx    = canvas.getContext("2d");
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+
+    try {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const px = imageData.data;
+
+      for (let i = 0; i < px.length; i += 4) {
+        const r = px[i], g = px[i + 1], b = px[i + 2];
+        // Fade out near-white pixels — smooth edge by scaling alpha
+        const brightness = (r + g + b) / 3;
+        if (brightness > 200) {
+          // Smooth transition: fully white = fully transparent
+          px[i + 3] = Math.round(255 * (1 - (brightness - 200) / 55));
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      img.src = canvas.toDataURL("image/png");
+    } catch (e) {
+      // Canvas blocked (e.g. strict CORS) — leave image as-is
+      console.warn("Logo bg removal skipped:", e);
+    }
+  };
+
+  if (img.complete && img.naturalWidth > 0) {
+    process();
+  } else {
+    img.addEventListener("load", process, { once: true });
+  }
+}
+
+/* ============================================
+   INIT
+   ============================================ */
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Hero text animation
+  document.querySelectorAll(".scramble-line").forEach((el) => {
+    const text  = el.dataset.text;
+    const delay = parseInt(el.dataset.delay || "0", 10);
+    if (text) new WordPullUp(el, text, 0.12, delay);
+  });
+
+  // Book tilt — enabled on all devices including touch
+  const bookEl = document.getElementById("hero-book");
+  if (bookEl) new BookTilt(bookEl);
+
+  // Card tilt — desktop only (touch devices skip)
+  const isTouchDevice = window.matchMedia("(hover: none)").matches;
+  const cardEl = document.getElementById("playing-card");
+  if (cardEl && !isTouchDevice) new CardTilt(cardEl);
+
+  // Particle background
+  initParticles();
+
+  // Remove white background from NLC logo PNG
+  removeLogoBg();
+
+  // Opt-in form
+  initForm();
+
+  // Prevent pinch-to-zoom on iOS Safari
+  document.addEventListener("touchmove", (e) => {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener("gesturestart",  (e) => e.preventDefault(), { passive: false });
+  document.addEventListener("gesturechange", (e) => e.preventDefault(), { passive: false });
+  document.addEventListener("gestureend",    (e) => e.preventDefault(), { passive: false });
+});
