@@ -560,9 +560,60 @@ document.addEventListener("DOMContentLoaded", () => {
   if (bookEl) new BookTilt(bookEl);
 
   // Card tilt — desktop only (touch devices skip)
-  const isTouchDevice = window.matchMedia("(hover: none)").matches;
   const cardEl = document.getElementById("playing-card");
+  const isTouchDevice = window.matchMedia("(hover: none)").matches;
   if (cardEl && !isTouchDevice) new CardTilt(cardEl);
+
+  // Mobile card drag — completely separate from CardTilt, touch devices only
+  if (cardEl && isTouchDevice) {
+    const frontContent = cardEl.querySelector(".card-front-content");
+    const backContent  = cardEl.querySelector(".card-back-content");
+    let startX = 0, startY = 0, isDragging = false;
+
+    function setCardTransform(rotX, rotY, scale, transition) {
+      cardEl.style.transition = transition || "none";
+      cardEl.style.transform  = `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(${scale})`;
+    }
+
+    function updateFace(rotX, rotY) {
+      const absY = ((Math.abs(rotY) % 360) + 360) % 360;
+      const absX = ((Math.abs(rotX) % 360) + 360) % 360;
+      const showBack = (absY > 90 && absY < 270) !== (absX > 90 && absX < 270);
+      if (frontContent) frontContent.style.opacity = showBack ? "0" : "1";
+      if (backContent)  backContent.style.opacity  = showBack ? "1" : "0";
+      if (backContent)  backContent.style.transform = (((Math.abs(rotY) % 360) + 360) % 360 > 90) ? "scaleX(-1)" : "";
+    }
+
+    cardEl.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      isDragging = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      cardEl.style.transition = "none";
+    }, { passive: false });
+
+    cardEl.addEventListener("touchmove", (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      e.preventDefault();
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      const rotY =  dx * 0.4;
+      const rotX = -dy * 0.4;
+      setCardTransform(rotX, rotY, 1.04);
+      updateFace(rotX, rotY);
+    }, { passive: false });
+
+    function onEnd() {
+      if (!isDragging) return;
+      isDragging = false;
+      setCardTransform(0, 0, 1, "transform 0.7s cubic-bezier(0.2,0.8,0.3,1)");
+      updateFace(0, 0);
+    }
+
+    cardEl.addEventListener("touchend",    onEnd);
+    cardEl.addEventListener("touchcancel", onEnd);
+  }
 
   // Particle background
   initParticles();
