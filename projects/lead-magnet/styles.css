@@ -724,11 +724,12 @@ br.mobile-br { display: none; }
   display: flex;
   flex-direction: column;
   gap: 20px;
-  transition: box-shadow 0.25s ease;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .testimonial-card:hover {
-  box-shadow: 0 8px 40px rgba(123, 33, 186, 0.15);
+  box-shadow: 0 8px 40px rgba(123, 33, 186, 0.45);
+  transform: translateY(-4px);
 }
 
 /* Top row: circular photo + name/badge */

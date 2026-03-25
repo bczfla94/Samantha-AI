@@ -99,12 +99,17 @@ class BookTilt {
     this.book.addEventListener("touchstart", (e) => {
       if (e.touches.length !== 1) return;
       e.preventDefault();
+      // Smooth transition for the initial press pop — transform eases in, not instant
+      this.book.style.transition =
+        "transform 0.38s cubic-bezier(0.2, 0.6, 0.3, 1), box-shadow 0.3s ease";
       this._applyTouchTilt(e.touches[0]);
     }, { passive: false });
 
     this.book.addEventListener("touchmove", (e) => {
       if (e.touches.length !== 1) return;
       e.preventDefault();
+      // No transform transition while dragging — tilt must track finger instantly
+      this.book.style.transition = "box-shadow 0.2s ease";
       this._applyTouchTilt(e.touches[0]);
     }, { passive: false });
 
@@ -119,10 +124,9 @@ class BookTilt {
     const rotY =  (x - 0.5) * 16;
     const rotX = -(y - 0.5) * 16;
 
-    this.book.style.transition = "box-shadow 0.2s ease";
-    this.book.style.transform  =
+    this.book.style.transform =
       `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotate(-4deg) scale(1.04)`;
-    this.book.style.boxShadow  =
+    this.book.style.boxShadow =
       `0 50px 100px rgba(75,11,163,0.55), 0 0 140px rgba(123,33,186,0.3)`;
 
     if (this.glare) {
@@ -683,6 +687,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const rotX = -dy * 0.4;
       setCardTransform(rotX, rotY, 1.04);
       updateFace(rotX, rotY);
+      cardEl.style.boxShadow = "0 30px 80px rgba(223,105,255,0.3), 0 0 120px rgba(75,11,163,0.2)";
     }, { passive: false });
 
     function onEnd() {
@@ -690,6 +695,7 @@ document.addEventListener("DOMContentLoaded", () => {
       isDragging = false;
       setCardTransform(0, 0, 1, "transform 0.7s cubic-bezier(0.2,0.8,0.3,1)");
       updateFace(0, 0);
+      cardEl.style.boxShadow = "";
     }
 
     cardEl.addEventListener("touchend",    onEnd);
