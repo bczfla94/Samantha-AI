@@ -106,6 +106,9 @@ body {
 /* Mobile headline spans — hidden on desktop, shown in mobile media query */
 .scramble-line.headline-mobile { display: none; }
 
+/* Mobile-only line breaks in section headings */
+br.mobile-br { display: none; }
+
 /* === Shared: section eyebrow === */
 .section-eyebrow {
   display: block;
@@ -222,6 +225,7 @@ body {
   gap: 80px;
   align-items: center;
 }
+
 
 /* Hero uses a wider container so the left column reaches further left */
 .hero .container {
@@ -1066,11 +1070,142 @@ body {
 }
 
 /* ============================================
+   PROOF GALLERY — Full-page fade-in grid
+   ============================================ */
+.section-proof {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.proof-gallery-header {
+  text-align: center;
+  padding: 80px 0 60px;
+}
+
+.proof-gallery-sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* Grid — 3 cols desktop, 2 cols mobile */
+.proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 40px 40px;
+}
+
+/* Each card — starts hidden, animates in */
+.proof-grid .proof-item {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  cursor: pointer;
+  min-height: 200px;
+  opacity: 0;
+  transform: translateY(56px);
+  transition: opacity 0.9s cubic-bezier(0.2, 0.6, 0.3, 1),
+              transform 0.9s cubic-bezier(0.2, 0.6, 0.3, 1),
+              box-shadow 0.3s ease, border-color 0.3s ease;
+  /* Reset proof-strip flex layout */
+  display: block;
+}
+
+/* Triggered by IntersectionObserver */
+.proof-grid .proof-item.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.proof-grid .proof-item:hover {
+  border-color: rgba(223, 105, 255, 0.45);
+  box-shadow:
+    0 8px 40px rgba(123, 33, 186, 0.55),
+    0 0 80px rgba(123, 33, 186, 0.25),
+    0 0 20px rgba(223, 105, 255, 0.15);
+  transform: translateY(-4px);
+  /* Speed up transform for hover — overrides the slow scroll-in transition */
+  transition: opacity 0.9s cubic-bezier(0.2, 0.6, 0.3, 1),
+              transform 0.25s ease,
+              box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.proof-grid .proof-item img {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+/* Lightbox */
+.proof-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.proof-lightbox.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.proof-lightbox-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  cursor: pointer;
+}
+
+.proof-lightbox-img {
+  position: relative;
+  z-index: 1;
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.proof-lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.proof-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
    BOTTOM CTA STRIP
    ============================================ */
 .section-cta {
   position: relative;
-  padding: 100px 0;
+  padding: 60px 0 100px;
   overflow: hidden;
 }
 
@@ -1143,7 +1278,7 @@ body {
   }
 
   .hero {
-    padding: 60px 0 60px;
+    padding: 60px 0 24px;
   }
 
   /* Single-column hero */
@@ -1254,10 +1389,18 @@ body {
   /* Section spacing */
   .section-inside,
   .section-testimonials,
-  .section-about,
-  .section-cta {
-    padding: 72px 0;
+  .section-about {
+    padding: 48px 0;
   }
+
+  .section-cta {
+    padding: 28px 0 48px;
+  }
+
+
+  /* Section heading line breaks */
+  br.mobile-br  { display: inline; }
+  br.desktop-br { display: none; }
 
   /* Steps: single column */
   .steps-grid {
@@ -1282,6 +1425,21 @@ body {
     -webkit-touch-callout: none;
   }
 
+  .card-back-logo {
+    width: 85%;
+  }
+
+  /* Proof Gallery — mobile */
+  .proof-gallery-header {
+    padding: 60px 0 40px;
+  }
+
+  .proof-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 16px 30px;
+    gap: 12px;
+  }
+
   /* Proof strip */
   .proof-strip-inner {
     gap: 24px;
@@ -1297,6 +1455,22 @@ body {
 
   .proof-label {
     font-size: 9px;
+  }
+
+  .cta-glow {
+    background: radial-gradient(ellipse, rgba(123, 33, 186, 0.22) 0%, rgba(75, 11, 163, 0.10) 40%, transparent 70%);
+  }
+
+  .section-cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to bottom, #070300 0%, transparent 100%);
+    z-index: 1;
+    pointer-events: none;
   }
 }
 

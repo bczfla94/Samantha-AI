@@ -279,7 +279,13 @@ class CardTilt {
     this.dragStartY   = 0;
     this.dragRotX     = 0;
     this.dragRotY     = 0;
-    this.card.style.transition = "transform 0.6s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
+    // rAF lerp state for smooth hover
+    this._rotX        = 0;
+    this._rotY        = 0;
+    this._targetRotX  = 0;
+    this._targetRotY  = 0;
+    this._loopRunning = false;
+    this.card.style.transition = "box-shadow 0.4s ease";
     this._bindEvents();
   }
 
@@ -325,41 +331,65 @@ class CardTilt {
     this.glare.style.opacity = "1";
   }
 
+  _lerp(a, b, t) { return a + (b - a) * t; }
+
+  _startLoop() {
+    if (this._loopRunning) return;
+    this._loopRunning = true;
+    const loop = () => {
+      if (!this._loopRunning) return;
+      const t = this._isHovering ? 0.1 : 0.07;
+      this._rotX = this._lerp(this._rotX, this._targetRotX, t);
+      this._rotY = this._lerp(this._rotY, this._targetRotY, t);
+      this._setTransform(this._rotX, this._rotY, this._isHovering ? 1.03 : 1);
+      const settled =
+        Math.abs(this._rotX - this._targetRotX) < 0.05 &&
+        Math.abs(this._rotY - this._targetRotY) < 0.05;
+      if (settled) {
+        this._rotX = this._targetRotX;
+        this._rotY = this._targetRotY;
+        this._loopRunning = false;
+      } else {
+        requestAnimationFrame(loop);
+      }
+    };
+    requestAnimationFrame(loop);
+  }
+
   _onHover(e) {
     if (this.isDragging) return;
     const rect = this.card.getBoundingClientRect();
     const x    = (e.clientX - rect.left) / rect.width;
     const y    = (e.clientY - rect.top)  / rect.height;
-    const rotY =  (x - 0.5) * 22;
-    const rotX = -(y - 0.5) * 22;
+    this._targetRotY =  (x - 0.5) * 22;
+    this._targetRotX = -(y - 0.5) * 22;
 
-    // Set fast transition once on hover enter (not every mousemove)
     if (!this._isHovering) {
       this._isHovering = true;
-      this.card.style.transition = "transform 0.1s ease, box-shadow 0.3s ease";
       this.card.style.boxShadow =
         `0 20px 60px rgba(223,105,255,0.25), 0 0 100px rgba(75,11,163,0.15)`;
     }
 
-    this._setTransform(rotX, rotY, 1.03);
     this._setGlare(x * 100, y * 100);
+    this._startLoop();
   }
 
   _onLeave() {
     if (this.isDragging) return;
     this._isHovering = false;
+    this._targetRotX = 0;
+    this._targetRotY = 0;
     if (this.glare) this.glare.style.opacity = "0";
-    this.card.style.transition = "transform 0.6s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
-    this._setTransform(0, 0, 1);
     this.card.style.boxShadow = "";
+    this._startLoop();
   }
 
   _onDragStart(e) {
     if (e.preventDefault) e.preventDefault();
     this.isDragging = true;
+    this._loopRunning = false; // stop hover loop
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
-    this.card.style.transition = "box-shadow 0.3s ease";
     this.card.style.cursor = "grabbing";
     // Only attach global listeners while dragging
     document.addEventListener("mousemove", this._boundDrag);
@@ -383,15 +413,66 @@ class CardTilt {
     if (!this.isDragging) return;
     this.isDragging = false;
     this.card.style.cursor = "grab";
-    this.card.style.transition = "transform 0.7s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
-    this._setTransform(0, 0, 1);
+    // Spring back via lerp
+    this._targetRotX = 0;
+    this._targetRotY = 0;
+    this._isHovering = false;
     this._updateFace(0, 0);
     this.card.style.boxShadow = "";
+    this._startLoop();
     // Remove global listeners now that drag is done
     document.removeEventListener("mousemove", this._boundDrag);
     document.removeEventListener("mouseup",   this._boundDragEnd);
     document.removeEventListener("touchend",  this._boundDragEnd);
   }
+}
+
+/* ============================================
+   PROOF GALLERY — IntersectionObserver fade-in + lightbox
+   ============================================ */
+
+function initProofGallery() {
+  const items = document.querySelectorAll(".proof-grid .proof-item");
+  if (!items.length) return;
+
+  // Staggered fade-in — only fires when card is meaningfully in view
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const index = [...items].indexOf(entry.target);
+        const col   = index % (window.innerWidth > 768 ? 3 : 2);
+        entry.target.style.transitionDelay = `${col * 140}ms`;
+        entry.target.classList.add("visible");
+        observer.unobserve(entry.target); // animate once
+        // Clear the stagger delay after the scroll-in completes so hover is instant
+        setTimeout(() => { entry.target.style.transitionDelay = "0ms"; }, 900 + col * 140);
+      }
+    });
+  }, {
+    threshold: 0.18,
+    rootMargin: "0px 0px -120px 0px"  // don't fire until 120px inside viewport
+  });
+
+  items.forEach(item => observer.observe(item));
+
+  // Lightbox
+  const lightbox  = document.getElementById("proof-lightbox");
+  const lbImg     = document.getElementById("proof-lightbox-img");
+  const lbOverlay = document.getElementById("proof-lightbox-overlay");
+  const lbClose   = document.getElementById("proof-lightbox-close");
+  if (!lightbox) return;
+
+  items.forEach(item => {
+    item.addEventListener("click", () => {
+      lbImg.src = item.dataset.src;
+      lightbox.classList.add("open");
+    });
+  });
+
+  function closeLightbox() { lightbox.classList.remove("open"); }
+  lbOverlay.addEventListener("click", closeLightbox);
+  lbClose.addEventListener("click", closeLightbox);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeLightbox(); });
 }
 
 /* ============================================
@@ -620,6 +701,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Remove white background from NLC logo PNG
   removeLogoBg();
+
+  // Proof gallery scroll-scrub + lightbox
+  initProofGallery();
 
   // Opt-in form
   initForm();

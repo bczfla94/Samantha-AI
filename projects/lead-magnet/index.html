@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=55" />
+  <link rel="stylesheet" href="styles.css?v=66" />
 </head>
 <body>
 
@@ -156,7 +156,7 @@
 
       <div class="section-header">
 <h2 class="section-heading">
-          The 5 Step System That Signs Clients<br>Without Ads, Thousands Of Followers, Or Years Of Experience
+          The 5 Step System<br class="mobile-br">That Signs Clients<br class="desktop-br"><br class="mobile-br">Without Ads, Thousands Of<br class="mobile-br">Followers, Or Years Of Experience
         </h2>
       </div>
 
@@ -342,6 +342,35 @@
     </div>
   </div>
 
+  <!-- ===================== PROOF GALLERY ===================== -->
+  <section class="section-proof" id="proof-gallery">
+    <div class="proof-gallery-header">
+      <h2 class="section-heading">Real Coaches. Real Results.</h2>
+      <p class="proof-gallery-sub">Screenshots don't lie.</p>
+    </div>
+    <div class="proof-grid">
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1549576490-b0b4831ef60a?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1549576490-b0b4831ef60a?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+      <div class="proof-item" data-src="https://images.unsplash.com/photo-1550345332-09e3ac987658?w=400&h=700&fit=crop"><img src="https://images.unsplash.com/photo-1550345332-09e3ac987658?w=400&h=700&fit=crop" alt="Client result" draggable="false" /></div>
+    </div>
+  </section>
+
+  <!-- Lightbox -->
+  <div class="proof-lightbox" id="proof-lightbox">
+    <div class="proof-lightbox-overlay" id="proof-lightbox-overlay"></div>
+    <img class="proof-lightbox-img" id="proof-lightbox-img" alt="Proof" />
+    <button class="proof-lightbox-close" id="proof-lightbox-close">✕</button>
+  </div>
+
   <!-- ===================== BOTTOM CTA ===================== -->
   <section class="section-cta">
     <div class="cta-glow"></div>
@@ -356,7 +385,7 @@
 
   <!-- ===================== JS ===================== -->
   <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
-  <script src="main.js?v=4"></script>
+  <script src="main.js?v=5"></script>
 
 </body>
 </html>
