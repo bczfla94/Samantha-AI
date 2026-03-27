@@ -288,7 +288,9 @@ class CardTilt {
     this._rotY        = 0;
     this._targetRotX  = 0;
     this._targetRotY  = 0;
-    this._loopRunning = false;
+    this._loopRunning  = false;
+    this._loopGen      = 0; // incremented on each new loop to cancel stale ones
+    this._isSpringBack = false; // blocks hover/leave during spring-back
     this.card.style.transition = "box-shadow 0.4s ease";
     this._bindEvents();
   }
@@ -338,21 +340,23 @@ class CardTilt {
   _lerp(a, b, t) { return a + (b - a) * t; }
 
   _startLoop() {
-    if (this._loopRunning) return;
+    const gen = ++this._loopGen; // invalidates any previously running loop
     this._loopRunning = true;
     const loop = () => {
-      if (!this._loopRunning) return;
+      if (gen !== this._loopGen) return; // stale loop — a newer one has started
       const t = this._isHovering ? 0.1 : 0.07;
       this._rotX = this._lerp(this._rotX, this._targetRotX, t);
       this._rotY = this._lerp(this._rotY, this._targetRotY, t);
       this._setTransform(this._rotX, this._rotY, this._isHovering ? 1.03 : 1);
+      this._updateFace(this._rotX, this._rotY);
       const settled =
         Math.abs(this._rotX - this._targetRotX) < 0.05 &&
         Math.abs(this._rotY - this._targetRotY) < 0.05;
       if (settled) {
         this._rotX = this._targetRotX;
         this._rotY = this._targetRotY;
-        this._loopRunning = false;
+        this._loopRunning  = false;
+        this._isSpringBack = false;
       } else {
         requestAnimationFrame(loop);
       }
@@ -361,7 +365,7 @@ class CardTilt {
   }
 
   _onHover(e) {
-    if (this.isDragging) return;
+    if (this.isDragging || this._isSpringBack) return;
     const rect = this.card.getBoundingClientRect();
     const x    = (e.clientX - rect.left) / rect.width;
     const y    = (e.clientY - rect.top)  / rect.height;
@@ -379,7 +383,7 @@ class CardTilt {
   }
 
   _onLeave() {
-    if (this.isDragging) return;
+    if (this.isDragging || this._isSpringBack) return;
     this._isHovering = false;
     this._targetRotX = 0;
     this._targetRotY = 0;
@@ -391,7 +395,7 @@ class CardTilt {
   _onDragStart(e) {
     if (e.preventDefault) e.preventDefault();
     this.isDragging = true;
-    this._loopRunning = false; // stop hover loop
+    this._loopGen++; // cancel any running loop
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
     this.card.style.cursor = "grabbing";
@@ -415,15 +419,27 @@ class CardTilt {
 
   _onDragEnd() {
     if (!this.isDragging) return;
-    this.isDragging = false;
-    this.card.style.cursor = "grab";
-    // Spring back via lerp
-    this._targetRotX = 0;
-    this._targetRotY = 0;
-    this._isHovering = false;
-    this._updateFace(0, 0);
+    this.isDragging    = false;
+    this._isSpringBack = true;
+    this._isHovering   = false;
+    this.card.style.cursor    = "grab";
     this.card.style.boxShadow = "";
-    this._startLoop();
+
+    // Use CSS transition for spring-back — exactly like mobile
+    this.card.style.transition = "transform 0.7s cubic-bezier(0.2,0.8,0.3,1), box-shadow 0.4s ease";
+    this.card.style.transform  = "perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)";
+    this._updateFace(0, 0);
+
+    // After animation completes, restore hover-ready state
+    setTimeout(() => {
+      this.card.style.transition = "box-shadow 0.4s ease";
+      this._rotX = 0;
+      this._rotY = 0;
+      this._targetRotX = 0;
+      this._targetRotY = 0;
+      this._isSpringBack = false;
+    }, 750);
+
     // Remove global listeners now that drag is done
     document.removeEventListener("mousemove", this._boundDrag);
     document.removeEventListener("mouseup",   this._boundDragEnd);

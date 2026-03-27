@@ -369,11 +369,15 @@ br.mobile-br { display: none; }
 /* Success state (replaces form on submit) */
 .form-success {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 10px;
   padding: 32px 0 8px;
 }
+
+.form-success .success-heading { order: 1; }
+.form-success .success-icon    { order: 2; margin-top: -8px; }
+.form-success .success-sub     { order: 3; width: 100%; }
 
 .success-icon {
   font-size: 48px;
@@ -856,10 +860,12 @@ br.mobile-br { display: none; }
 
 .card-front-content {
   background:
+    radial-gradient(circle, rgba(255,255,255,0.11) 1px, transparent 1px),
     radial-gradient(ellipse at 50% 110%, rgba(75, 11, 163, 0.55) 0%, transparent 60%),
     radial-gradient(ellipse at 50% 40%,  rgba(30, 10, 60, 0.7)   0%, transparent 75%),
     radial-gradient(ellipse at 50% 0%,   rgba(123, 33, 186, 0.15) 0%, transparent 50%),
     #0a0616;
+  background-size: 22px 22px, auto, auto, auto, auto;
 }
 
 .card-back-content {
@@ -1382,6 +1388,17 @@ br.mobile-br { display: none; }
     white-space: nowrap;
   }
 
+  .form-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .form-success .success-heading { order: 2; }
+  .form-success .success-icon    { order: 1; }
+  .form-success .success-sub     { order: 3; width: auto; }
+
   /* Stack email + phone fields vertically */
   .field-row {
     grid-template-columns: 1fr;
@@ -1443,7 +1460,8 @@ br.mobile-br { display: none; }
 
   /* Proof strip */
   .proof-strip-inner {
-    gap: 24px;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .proof-divider {
@@ -1451,11 +1469,11 @@ br.mobile-br { display: none; }
   }
 
   .proof-number {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .proof-label {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .cta-glow {
