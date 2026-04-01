@@ -109,6 +109,10 @@ body {
 /* Mobile-only line breaks in section headings */
 br.mobile-br { display: none; }
 
+/* Desktop-only line breaks — hidden on mobile */
+.desktop-br { display: inline; }
+@media (max-width: 768px) { .desktop-br { display: none; } }
+
 /* === Shared: section eyebrow === */
 .section-eyebrow {
   display: block;

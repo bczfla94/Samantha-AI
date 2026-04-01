@@ -1,0 +1,13 @@
+{
+  "name": "pdf-generator",
+  "version": "1.0.0",
+  "description": "Premium PDF generator for 5 Step Client Conversion System",
+  "scripts": {
+    "build": "node build_html.js",
+    "pdf": "node generate_pdf.js",
+    "all": "node build_html.js && node generate_pdf.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.15.0"
+  }
+}
