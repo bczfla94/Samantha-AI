@@ -242,33 +242,38 @@ document.addEventListener("DOMContentLoaded", () => {
   // Particles
   initParticles();
 
-  // Countdown — 7 days from right now
-  const TARGET = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
+  // FAQ accordion
+  document.querySelectorAll(".faq-question").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const item = btn.closest(".faq-item");
+      const isOpen = item.classList.contains("open");
 
-  function updateCountdown() {
-    const now      = new Date().getTime();
-    const distance = TARGET - now;
-
-    if (distance <= 0) {
-      ["cd-days","cd-hours","cd-mins","cd-secs"].forEach(id => {
-        document.getElementById(id).textContent = "00";
+      // Close all
+      document.querySelectorAll(".faq-item.open").forEach((openItem) => {
+        openItem.classList.remove("open");
+        openItem.querySelector(".faq-question").setAttribute("aria-expanded", "false");
       });
-      return;
-    }
 
-    const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-    const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const s = Math.floor((distance % (1000 * 60)) / 1000);
+      // Open clicked (if it was closed)
+      if (!isOpen) {
+        item.classList.add("open");
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
 
-    document.getElementById("cd-days").textContent  = String(d).padStart(2, "0");
-    document.getElementById("cd-hours").textContent = String(h).padStart(2, "0");
-    document.getElementById("cd-mins").textContent  = String(m).padStart(2, "0");
-    document.getElementById("cd-secs").textContent  = String(s).padStart(2, "0");
+  // Sticky mobile CTA — show after hero scrolls out of view
+  const stickyCta = document.getElementById("sticky-cta");
+  const heroSection = document.querySelector(".hero");
+  if (stickyCta && heroSection) {
+    const heroObserver = new IntersectionObserver(
+      ([entry]) => {
+        stickyCta.classList.toggle("visible", !entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+    heroObserver.observe(heroSection);
   }
-
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
 
   // Prevent pinch-to-zoom on iOS Safari
   document.addEventListener("touchmove", (e) => {
