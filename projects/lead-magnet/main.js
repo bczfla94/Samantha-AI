@@ -451,6 +451,114 @@ class CardTilt {
    PROOF GALLERY — IntersectionObserver fade-in + lightbox
    ============================================ */
 
+/* ─── VIDEO TESTIMONIAL PLAYER ─── */
+function initVideoPlayer(p, rate) {
+  rate = rate || 1.0;
+  // p = ID prefix, e.g. 'vt' for Dragana, 'vt2' for Miranda
+  const video     = document.getElementById(p + 'Video');
+  const overlay   = document.getElementById(p + 'Overlay');
+  const vtPlayBtn = document.getElementById(p + 'PlayBtn');
+  const toggle    = document.getElementById(p + 'Toggle');
+  const iconPlay  = document.getElementById(p + 'IconPlay');
+  const iconPause = document.getElementById(p + 'IconPause');
+  const muteBtn   = document.getElementById(p + 'Mute');
+  const iconVol   = document.getElementById(p + 'IconVol');
+  const iconMuted = document.getElementById(p + 'IconMuted');
+  const progWrap  = document.getElementById(p + 'ProgWrap');
+  const progFill  = document.getElementById(p + 'ProgFill');
+  const progThumb = document.getElementById(p + 'ProgThumb');
+  const timeEl    = document.getElementById(p + 'Time');
+  const volTrack  = document.getElementById(p + 'VolTrack');
+  const volFill   = document.getElementById(p + 'VolFill');
+
+  if (!video) return;
+
+  const fmt = s => {
+    if (!isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const setPlaying = playing => {
+    iconPlay.style.display  = playing ? 'none'  : 'block';
+    iconPause.style.display = playing ? 'block' : 'none';
+    if (!playing) overlay.classList.remove('vt-hidden');
+    else          overlay.classList.add('vt-hidden');
+  };
+
+  // Big play button (overlay)
+  const startPlay = () => {
+    video.playbackRate = rate;
+    video.play();
+    setPlaying(true);
+  };
+  vtPlayBtn.addEventListener('click', startPlay);
+  video.addEventListener('click', () => {
+    if (video.paused) { video.play(); setPlaying(true); }
+    else              { video.pause(); setPlaying(false); }
+  });
+
+  // Controls play/pause
+  toggle.addEventListener('click', () => {
+    if (video.paused) { video.play(); setPlaying(true); }
+    else              { video.pause(); setPlaying(false); }
+  });
+
+  // Time update → progress bar
+  video.addEventListener('timeupdate', () => {
+    const pct = video.duration ? (video.currentTime / video.duration) * 100 : 0;
+    progFill.style.width  = pct + '%';
+    progThumb.style.left  = pct + '%';
+    timeEl.textContent = fmt(video.currentTime / rate) + ' / ' + fmt(video.duration / rate);
+  });
+
+  // Show overlay again when ended
+  video.addEventListener('ended', () => {
+    setPlaying(false);
+    video.currentTime = 0;
+  });
+
+  // Seek
+  const seek = e => {
+    const rect = progWrap.getBoundingClientRect();
+    const pct  = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    video.currentTime = pct * video.duration;
+  };
+  let seeking = false;
+  progWrap.addEventListener('mousedown', e => { seeking = true; seek(e); });
+  document.addEventListener('mousemove', e => { if (seeking) seek(e); });
+  document.addEventListener('mouseup',   () => { seeking = false; });
+
+  // Touch seek
+  progWrap.addEventListener('touchstart', e => {
+    seek(e.touches[0]); e.preventDefault();
+  }, { passive: false });
+  progWrap.addEventListener('touchmove', e => {
+    seek(e.touches[0]); e.preventDefault();
+  }, { passive: false });
+
+  // Mute
+  muteBtn.addEventListener('click', () => {
+    video.muted = !video.muted;
+    iconVol.style.display   = video.muted ? 'none'  : 'block';
+    iconMuted.style.display = video.muted ? 'block' : 'none';
+    volFill.style.width     = video.muted ? '0%'   : '100%';
+  });
+
+  // Volume click
+  const setVol = e => {
+    const rect = volTrack.getBoundingClientRect();
+    const pct  = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    video.volume   = pct;
+    video.muted    = pct === 0;
+    volFill.style.width     = (pct * 100) + '%';
+    iconVol.style.display   = pct === 0 ? 'none'  : 'block';
+    iconMuted.style.display = pct === 0 ? 'block' : 'none';
+  };
+  volTrack.addEventListener('click', setVol);
+}
+
 function initProofGallery() {
   const items = document.querySelectorAll(".proof-grid .proof-item");
   if (!items.length) return;
@@ -724,8 +832,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Remove white background from NLC logo PNG
   removeLogoBg();
 
+  // Video testimonial players — Dragana sped up, Miranda + Player 3 at normal speed
+  initVideoPlayer('vt', 1.1);
+  initVideoPlayer('vt2', 1.0);
+  initVideoPlayer('vt3', 1.0);
+
   // Proof gallery scroll-scrub + lightbox
   initProofGallery();
+
 
   // Opt-in form
   initForm();
